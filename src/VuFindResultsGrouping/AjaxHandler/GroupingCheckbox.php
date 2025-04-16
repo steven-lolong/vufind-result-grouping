@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Copyright 2021 (C) Bibliotheksservice-Zentrum Baden-
  * Württemberg, Konstanz, Germany
@@ -63,5 +64,10 @@ class GroupingCheckbox extends \VuFind\AjaxHandler\AbstractBase implements Trans
         $status = $status == 'true' ? true : false;
         $this->grouping->store(['group' => $status]);
         return $this->formatResponse([], 200);
+    }
+
+    public function getGrouping()
+    {
+        return $this->grouping;
     }
 }

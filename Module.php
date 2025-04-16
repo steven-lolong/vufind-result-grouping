@@ -45,7 +45,7 @@ class Module
      */
     public function getConfig()
     {
-        return include __DIR__ . '/../res/config/module.config.php';
+        return include __DIR__ . '/res/config/module.config.php';
     }
 
     /**

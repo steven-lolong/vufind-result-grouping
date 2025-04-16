@@ -22,8 +22,7 @@
 
 namespace VuFindResultsGrouping\Config;
 
-use Interop\Container\ContainerInterface;
-use Laminas\Db\ResultSet\ResultSet;
+use Psr\Container\ContainerInterface;
 use Laminas\Session\Container;
 
 /**

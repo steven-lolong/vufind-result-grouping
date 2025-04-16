@@ -6,14 +6,19 @@
  * @category Ida
  * @package  Search
  * @author   <dku@outermedia.de>
+ *
+ * Controlling Result is changed from Result Grouping to Collapse and Expand.
+ * Update the collection
+ * @author Steven Lolong <steven.lolong@uni-tuebingen.de>
  */
+
 namespace VuFindResultsGrouping\Backend\Solr\Response\Json;
 
 use VuFindSearch\Backend\Solr\Response\Json\Record;
 use VuFindSearch\Exception\InvalidArgumentException;
 use VuFindSearch\Response\RecordCollectionFactoryInterface;
 
-class RecordCollectionFactory implements RecordCollectionFactoryInterface
+class RecordCollectionFactory extends \VuFindSearch\Backend\Solr\Response\Json\RecordCollectionFactory implements RecordCollectionFactoryInterface
 {
     /**
      * Constructor.
@@ -23,7 +28,8 @@ class RecordCollectionFactory implements RecordCollectionFactoryInterface
      *
      * @return void
      */
-    public function __construct($recordFactory = null,
+    public function __construct(
+        $recordFactory = null,
         $collectionClass = 'VuFindResultsGrouping\Backend\Solr\Response\Json\RecordCollection'
     ) {
         if (null === $recordFactory) {
@@ -55,58 +61,35 @@ class RecordCollectionFactory implements RecordCollectionFactoryInterface
             );
         }
 
-        $collection = new $this->collectionClass($response);
+        $pluginManager = $this->recordFactory[0];
+        $serLoc = $pluginManager->getServiceLocator();
+        $solrDef = $serLoc->get('VuFindResultsGrouping\Config\Grouping')->getCurrentSettings();
+        $group_expand = array_key_exists('group_expand', $solrDef) ? $solrDef['group_expand'] : "";
 
-        // todo: unterscheide "has groups" oä, wichtig fuer record-ansicht, zb http://localhost/meta/Record/36855fmt
-        $collectionGroups = $collection->getGroups();
-        $collectionHasGroups = 0 < count($collectionGroups);
+        $collection = new $this->collectionClass($response);
+        $collectionHasGroups = $collection->hasExpanded();
 
         if (true === $collectionHasGroups) {
-            $keys = array_keys($collectionGroups);
-            $groupFieldId = reset($keys);
+            if (isset($response['response']['docs'])) {
+                foreach ($response['response']['docs'] as $doc) {
 
-            foreach ($collectionGroups[$groupFieldId]['groups'] as $group) {
-                if (!is_null($group['groupValue'])) {
-                    $docs = $group['doclist']['docs'];
-
-                    // Get first doc (as parent doc)
-                    $docFirst = reset($docs);
-
-                    // Do sub records exist?
-                    if (1 < count($docs)) {
-
-                        // We skip the masterrecord in group list
-                        array_shift($docs);
-
-                        // Create new collection for sub records
-                        $collectionSub = new $this->collectionClass($docs);
-
-                        // Merge topics of all sub records
+                    if (array_key_exists($doc[$group_expand], $response['expanded']) && true === is_array($response['expanded'][$doc[$group_expand]]['docs'])) {
+                        $docFirst = $doc;
                         $topics = [];
+                        $collectionSub = new $this->collectionClass($doc);
 
-                        foreach ($docs as $doc) {
-                            $doc['_isSubRecord'] = true;
-
-                            // Add each grouped record to sub collection
-                            $collectionSub->add(call_user_func($this->recordFactory, $doc));
-
-                            // Merge topics, if available
-                            if (array_key_exists('topic', $doc) && true === is_array($doc['topic'])) {
-                                $topics = array_merge($topics, $doc['topic']);
+                        foreach ($response['expanded'][$doc[$group_expand]]['docs'] as $sub_doc) {
+                            $sub_doc['_isSubRecord'] = true;
+                            $collectionSub->add(call_user_func($this->recordFactory, $sub_doc));
+                            if (array_key_exists('topic', $sub_doc) && true === is_array($sub_doc['topic'])) {
+                                $topics = array_merge($topics, $sub_doc['topic']);
                             }
                         }
-
-                        // Remove topic duplicates
                         $docFirst['topic'] = array_unique($topics);
-
                         $docFirst['_subRecords'] = $collectionSub;
-                    }
 
-                    $collection->add(call_user_func($this->recordFactory, $docFirst));
-                } else {
-                    // if records exist with unset group value, those will be grouped in a group
-                    // with groupValue=null - so handle these documents as single ungrouped docs
-                    foreach ($group['doclist']['docs'] as $doc) {
+                        $collection->add(call_user_func($this->recordFactory, $docFirst));
+                    } else {
                         $collection->add(call_user_func($this->recordFactory, $doc));
                     }
                 }

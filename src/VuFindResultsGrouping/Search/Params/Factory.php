@@ -22,7 +22,7 @@ namespace VuFindResultsGrouping\Search\Params;
 
 use VuFindResultsGrouping\Search\Solr\Params;
 use VuFindResultsGrouping\Search\Solr\AuthorParams;
-use Interop\Container\ContainerInterface;
+use Psr\Container\ContainerInterface;
 
 /**
  * Search params Factory
@@ -45,10 +45,10 @@ class Factory
         $options = $container->get('VuFind\SearchOptionsPluginManager')->get('solr');
         $grouping = $container->get('VuFindResultsGrouping\Config\Grouping');
         $params = new Params($options, $config, null, $grouping);
-        
+
         return $params;
     }
-    
+
     /**
      * Factory for Solr params object.
      *
@@ -62,7 +62,7 @@ class Factory
         $options = $container->get('VuFind\SearchOptionsPluginManager')->get('solrauthor');
         $grouping = $container->get('VuFindResultsGrouping\Config\Grouping');
         $params = new AuthorParams($options, $config, null, $grouping);
-        
+
         return $params;
     }
 }

@@ -33,7 +33,7 @@ trait SubrecordTrait
     /**
      * @return bool
      */
-    public function isSubRecord() : bool
+    public function isSubRecord(): bool
     {
         return isset($this->fields['_isSubRecord']) ?
             $this->fields['_isSubRecord'] : false;
@@ -42,7 +42,7 @@ trait SubrecordTrait
     /**
      * @return bool
      */
-    public function hasSubRecords() : bool
+    public function hasSubRecords(): bool
     {
         if (null !== ($collection = $this->getSubRecords())) {
             return 0 < $collection->count();

@@ -6,7 +6,12 @@
  * @category Ida
  * @package  Search
  * @author   <dku@outermedia.de>
+ *
+ * Controlling Result is changed from Result Grouping to Collapse and Expand.
+ * Update the collection
+ * @author Steven Lolong <steven.lolong@uni-tuebingen.de>
  */
+
 namespace VuFindResultsGrouping\Backend\Solr\Response\Json;
 
 class RecordCollection extends \VuFindSearch\Backend\Solr\Response\Json\RecordCollection
@@ -17,6 +22,11 @@ class RecordCollection extends \VuFindSearch\Backend\Solr\Response\Json\RecordCo
      * @var string
      */
     protected $groupFieldName;
+
+    /**
+     * @var boolean
+     */
+    protected $expanded;
 
     /**
      * Constructor.
@@ -36,11 +46,12 @@ class RecordCollection extends \VuFindSearch\Backend\Solr\Response\Json\RecordCo
             $reset = array_keys($keys);
             $this->groupFieldName = reset($reset);
 
-            $this->offset = 0; // TODO: No "start" info provided
+            $this->offset = 0;
         } else {
             $this->offset = $this->response['response']['start'];
         }
 
+        $this->expanded = isset($this->response['expanded']) && true === is_array($response['expanded']) ? true : false;
         $this->rewind();
     }
 
@@ -52,14 +63,12 @@ class RecordCollection extends \VuFindSearch\Backend\Solr\Response\Json\RecordCo
     }
 
     /**
-     * Return total number of records found.
      *
-     * @return int
+     * @return boolean
      */
-    public function getTotal()
+    public function hasExpanded()
     {
-        return true === $this->isGrouped()
-            ? $this->response['stats']['stats_fields'][$this->groupFieldName]['cardinality']
-            : $this->response['response']['numFound'];
+        return $this->expanded;
     }
+
 }

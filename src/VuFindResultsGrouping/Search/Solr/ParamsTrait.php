@@ -1,4 +1,5 @@
 <?php
+
 /*
  * Copyright 2021 (C) Bibliotheksservice-Zentrum Baden-
  * Württemberg, Konstanz, Germany
@@ -30,10 +31,14 @@ use VuFindSearch\ParamBag;
  * @package VuFindResultsGrouping\Search\Solr
  * @author Cornelius Amzar <cornelius.amzar@bsz-bw.de>
  * @author Robert Lange <lange@ub.uni-leipzig.de>
+ *
+ *
+ * Controlling Result is changed from Result Grouping to Collapse and Expand
+ * @author Steven Lolong <steven.lolong@uni-tuebingen.de>
+ *
  */
 trait ParamsTrait
 {
-    
     /**
      * Return the current filters as an array of strings ['field:filter']
      *
@@ -81,7 +86,7 @@ trait ParamsTrait
         }
         return $filterQuery;
     }
-    
+
     /**
      * Create search backend parameters for advanced features.
      *
@@ -90,66 +95,78 @@ trait ParamsTrait
     public function getBackendParameters()
     {
         $backendParams = new ParamBag();
-        $backendParams->add('year', (int)date('Y') + 1);
-        
+
         $this->restoreFromCookie();
-        
+
         // Fetch group params for grouping
         $config = $this->configLoader->get('config');
         $index = $config->get('Index');
         $group = false;
-        
+
         $groupingParams = $this->grouping->getCurrentSettings();
-        
+
         if (isset($groupingParams['group'])) {
             $group = $groupingParams['group'];
         } elseif ($index->get('group') !== null) {
             $group = $index->get('group');
         }
-        
+
         if ((bool)$group === true) {
-            $backendParams->add('group', 'true');
-            
+            $backendParams->add('expand', 'true');
+
             $group_field = '';
             $group_limit = 0;
-            
+            $group_expand = '';
+
             if (isset($groupingParams['group_field'])) {
                 $group_field = $groupingParams['group_field'];
             } elseif ($index->get('group.field') !== null) {
                 $group_field = $index->get('group.field');
             }
-            $backendParams->add('group.field', $group_field);
-            
+            // $backendParams->add('group.field', $group_field);
+
             if (isset($groupingParams['group_limit'])) {
                 $group_limit = $groupingParams['group_limit'];
             } elseif ($index->get('group.limit') !== null) {
                 $group_limit = $index->get('group.limit');
             }
-            $backendParams->add('group.limit', $group_limit);
+            if (isset($groupingParams['group_expand'])) {
+                $group_expand = $groupingParams['group_expand'];
+            } elseif ($index->get('group.expand') !== null) {
+                $group_limit = $index->get('group.expand');
+            }
+
+            // collapse and expand
+            for ($i = 0; $i < count($group_field); $i++) {
+                $backendParams->add('fq', '{!collapse field=' . $group_field[$i] . '}');
+            }
+
+            $backendParams->add('expand.rows', $group_limit);
+            $backendParams->add('expand.field', $group_expand);
         }
         // search those shards that answer, accept partial results
         $backendParams->add('shards.tolerant', 'true');
-        
+
         // maximum search time in ms
         // $backendParams->add('timeAllowed', '4000');
-        
+
         // defaultOperator=AND was removed in schema.xml
         $backendParams->add('q.op', "AND");
-        
+
         // increase performance for facet queries
         $backendParams->add('facet.threads', "4");
-        
+
         // Spellcheck
         $backendParams->set(
             'spellcheck',
             $this->getOptions()->spellcheckEnabled() ? 'true' : 'false'
         );
-        
+
         // Facets
         $facets = $this->getFacetSettings();
         if (!empty($facets)) {
             $backendParams->add('facet', 'true');
-            
+
             foreach ($facets as $key => $value) {
                 // prefix keys with "facet" unless they already have a "f." prefix:
                 $fullKey = substr($key, 0, 2) == 'f.' ? $key : "facet.$key";
@@ -157,20 +174,20 @@ trait ParamsTrait
             }
             $backendParams->add('facet.mincount', 1);
         }
-        
+
         // Filters
         $filters = $this->getFilterSettings();
         foreach ($filters as $filter) {
             $backendParams->add('fq', $filter);
         }
-        
+
         // Shards
         $allShards = $this->getOptions()->getShards();
         $shards = $this->getSelectedShards();
         if (empty($shards)) {
             $shards = array_keys($allShards);
         }
-        
+
         // If we have selected shards, we need to format them:
         if (!empty($shards)) {
             $selectedShards = [];
@@ -180,7 +197,7 @@ trait ParamsTrait
             $shards = $selectedShards;
             $backendParams->add('shards', implode(',', $selectedShards));
         }
-        
+
         // Sort
         $sort = $this->getSort();
         if ($sort) {
@@ -193,19 +210,19 @@ trait ParamsTrait
             }
             $backendParams->add('sort', $this->normalizeSort($sort));
         }
-        
+
         // Highlighting disabled
         $backendParams->add('hl', 'false');
-        
+
         // Pivot facets for visual results
-        
+
         if ($pf = $this->getPivotFacets()) {
             $backendParams->add('facet.pivot', $pf);
         }
-        
+
         return $backendParams;
     }
-    
+
     /**
      * This method reads the cookie and stores the information into the session
      * So we only need to process session bwlow.
@@ -222,6 +239,9 @@ trait ParamsTrait
             }
             if (isset($this->cookie->group_limit)) {
                 $this->container->offsetSet('group_limit', $this->cookie->group_limit);
+            }
+            if (isset($this->cookie->group_expand)) {
+                $this->container->offsetSet('group_expand', $this->cookie->group_expand);
             }
         }
     }

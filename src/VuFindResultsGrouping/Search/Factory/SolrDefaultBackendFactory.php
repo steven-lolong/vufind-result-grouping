@@ -7,6 +7,7 @@
  * @package  Search
  * @author   <dku@outermedia.de>
  */
+
 namespace VuFindResultsGrouping\Search\Factory;
 
 use VuFindResultsGrouping\Backend\Solr\Response\Json\RecordCollectionFactory;
@@ -22,8 +23,10 @@ class SolrDefaultBackendFactory extends AbstractSolrBackendFactory
     {
         parent::__construct();
         $this->searchConfig = 'searches';
-        $this->facetConfig = 'facets';
         $this->searchYaml = 'searchspecs.yaml';
+        $this->facetConfig = 'facets';
+        $this->defaultIndexName = 'biblio';
+        $this->allowFallbackForIndexName = true;
     }
 
     /**

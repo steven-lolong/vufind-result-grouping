@@ -18,25 +18,15 @@ troubleshooting hints.
 ## Quick steps
 
 ### Indexing
-Index a matchkey field in Solr. A good starting point would be to index 
-   `format:isbn:year`
-as matchkey, with
-- format: this should only be simple formats (about 10 different terms)
-- isbn: this should be normalized isbn13
-- year: year of publication (yyyy)
+A good starting point would be to index 
+   `title_sort`
 
-In case you don't have an isbn in the metadata, you could use 
+In case you need more than one field to group, use the colon as the separator
     `format:author:title:year:publisher`
 or
     `format:author:title:year`
 or
     `format:author:title`
-as matchkey, with
-- format: this should only be simple formats (maybe about 10 different terms)
-- author: this should be normalized to lowercase lastname
-- title: this should be normalized (lowercase)
-- year: year of publication (yyyy)
-- publisher: this should be normalized (lowercase, handling of abbreviations and punctuation)
 
 
 ### Enable this module
@@ -88,6 +78,7 @@ class Your RecordDriver extends SolrMarc {
     ...   
 }
 ~~~
+
 This just adds some accessor methods. It will not interfere with your 
 custom code. 
 
@@ -97,14 +88,15 @@ In your local `config.ini` add the following to `[Index]` section`
 [Index]
 ...
 group = true
-group.field = "enter the name of your matchkey here"
+group.field = "enter the field name separate by colon if field name more than one"
 group.limit = 10
+group.expand = "enter the field name to be expand. the field name should be one of group.field. only contain one field name"
 ~~~
 
 ## User interface
 
 ### JavaScript
-Add `js/resultGrouping.js` to your theme configuration.  
+Copy `res/theme/js/resultGrouping.js` to your theme folder and update the theme configuration.  
 
 ### HTML / Templates
 
